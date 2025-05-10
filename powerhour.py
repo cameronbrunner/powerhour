@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request
 
 from synochat.webhooks import SlashCommand
