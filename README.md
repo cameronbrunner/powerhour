@@ -52,6 +52,9 @@ $ ./run.sh
 $
 ```
 
+The script can be modified to pull the prebuilt image from dockerhub `cameronbrunner/powerhour` if you chose to
+skip the building steps.
+
 # Why
 My specific use case is remotely controlling the power of a device.  I have one of Sequent's relays
 connected to a RaspberryPi Zero running Tailscale at a remote location and a DS-218+ running Tailscale and 
