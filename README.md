@@ -1,21 +1,25 @@
 PowerHour
 =========
 
-Monitor and switch the power on a Sequent Microsystems relay using a Synology Chat slash command.
+Monitor and switch the power on a Sequent Microsystems relay using a Synology Chat slash commands
+and/or outgoing web hooks.
 
 ![image](https://github.com/user-attachments/assets/0041eaf2-961a-482d-b13b-fafade825092)
 
-# Supported Commands
+# Supported Slash Commands
 * Get the current power state `/power status`
 * Turn the power on `/power on`
 * Turn the power off `/power off`
+
+# Supported Outgoing Webooks
+Same as the slash commands just without the leading slash.
 
 # Building
 This project is built with Docker.  The following command will build all of the dependencies
 and the final application image `powerhour`.
 
 ```
-$ sudo docker build -t powerhour
+$ sudo docker build -t powerhour .
 .
 .
 .
@@ -29,12 +33,14 @@ Successfully tagged powerhour:latest
 # Running
 The first step is to go and set up a Synology Chat Integration.  Follow the instructions here: 
 
-https://github.com/bitcanon/synochat/tree/main?tab=readme-ov-file#settings
+https://github.com/bitcanon/synochat/tree/main?tab=readme-ov-file#settings for slash commands.
+If you want to add the webhook support too you will need to creat an outgoing webhook integration.
 
 Copy the token and create a file in this director called `env.sh` and with contents:
 
 ```
-SYN_TOKEN=<copied-token-from-synology-chat>
+SLASH_TOKEN=<copied-token-from-synology-chat>
+WEBHOOK_TOKEN=<copied-token-from-synology-chat>
 ```
 
 I have defaults set for my environment with a single 3 port relay where I am only using the middle

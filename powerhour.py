@@ -1,22 +1,62 @@
 import os
 from flask import Flask, request
 
-from synochat.webhooks import SlashCommand
+from synochat.webhooks import SlashCommand, OutgoingWebhook
 from synochat.exceptions import *
 import lib3relind
 
 app = Flask(__name__)
 
-def get_status(command, device, relay):
-    if lib3relind.get(device,relay) == 1:
-        return command.createResponse('The power is on!')
-    return command.createResponse('The power is off!')
+class PowerController:
+    def __init__(self, device, relay):
+        self.device = device
+        self.relay = relay
+
+    def get_status(self):
+        if lib3relind.get(self.device,self.relay) == 1:
+            return 'The power is on!'
+        return 'The power is off!'
+
+    def set_power(self, state):
+        lib3relind.set(self.device,self.relay,state)
+
+    def process_command(self, command, *args):
+        print('Processing command [%s]' % command, flush=True)
+        match command:
+            case 'status':
+                pass
+            case 'on':
+                self.set_power(1)
+            case 'off':
+                self.set_power(0)
+            case _:
+                raise Exception('Invalid command specified [%s].  Must be "status", "off", or "on".' % command)
+        return self.get_status()
+
+pc = PowerController(os.environ.get("DEVICE",0), os.environ.get("RELAY",2))
 
 @app.route('/power', methods=['POST'])
+def power():
+    token = os.environ.get("WEBHOOK_TOKEN")
+    webhook = OutgoingWebhook(request.form, token, verbose=True)
+
+    if not webhook.authenticate(token):
+        return webhook.createResponse('Outgoing Webhook authentication failed: Token mismatch.')
+
+    response = ''
+    parts = webhook.text.split(' ')
+    #print(parts, flush=True)
+    if len(parts) == 2:
+        try:
+            response = pc.process_command(parts[1])
+        except:
+            # Couldn't parts the command so ignore...
+            pass
+    return webhook.createResponse(response)
+
+@app.route('/slash', methods=['POST'])
 def slash():
-    token   = os.environ.get("SYN_TOKEN")
-    device = os.environ.get("DEVICE",0)
-    relay = os.environ.get("RELAY",2)
+    token   = os.environ.get("SLASH_TOKEN")
     command = SlashCommand(request.form)
 
     if not command.authenticate(token):
@@ -25,23 +65,13 @@ def slash():
     # Check if the command parameters are valid
     try:
         action  = command.addParameter('action')
-        #state   = command.addParameter('state',  optional=True)
     except ParameterParseError:
         return command.createResponse('An action of "status" or "set" must be specified')
 
     try:
-        match action.value:
-            case 'status':
-                pass
-            case 'on':
-                lib3relind.set(device,relay,1)
-            case 'off':
-                lib3relind.set(device,relay,0)
-            case _:
-                return command.createResponse('Invalid command specified [%s].  Must be "status", "off", or "on".' % action.value)
-        return get_status(command, device, relay)
+        return command.createResponse(pc.process_command(action.value))
     except Exception as ex:
         return command.createResponse('Error processing command: %s' % ex)
 
 if __name__ == '__main__':
-   app.run('0.0.0.0', port=5001, debug = True)
+   app.run('0.0.0.0', port=5001, debug = False)

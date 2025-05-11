@@ -1,3 +1,5 @@
+#!/bin/bash
+
 if [ ! -f env.sh ]; then
   touch env.sh
 fi
